@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: devops-task-manager
+    env: node
+    buildCommand: npm ci
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_VERSION
+        value: 1.0.0
+    healthCheckPath: /health
+    autoDeploy: false   # Controlled exclusively by GitHub Actions pipeline

@@ -1,0 +1,30 @@
+{
+  "name": "devops-assignment",
+  "version": "1.0.0",
+  "description": "CI/CD Pipeline Automation & Deployment Strategies – DevOps Assignment",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --coverage --forceExit",
+    "test:ci": "jest --coverage --forceExit --ci"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "collectCoverageFrom": [
+      "src/**/*.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 80
+      }
+    }
+  }
+}

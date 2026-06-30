@@ -1,0 +1,99 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  # ─────────────────────────────────────────────
+  # JOB 1: Continuous Integration – Quality Gate
+  # ─────────────────────────────────────────────
+  test:
+    name: 🧪 Run Tests (Quality Gate)
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm ci
+
+      - name: 🧪 Run test suite
+        run: npm run test:ci
+
+      - name: 📊 Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: matrix.node-version == '20.x'
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  # ─────────────────────────────────────────────
+  # JOB 2: Continuous Deployment (only on main)
+  # ─────────────────────────────────────────────
+  deploy:
+    name: 🚀 Deploy to Render
+    runs-on: ubuntu-latest
+    needs: test                        # BLOCKED if tests fail
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: ⬇️ Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Trigger Render Deploy Hook
+        env:
+          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+        run: |
+          echo "Triggering deployment to Render..."
+          curl -s -o response.json -w "%{http_code}" \
+            -X POST "$RENDER_DEPLOY_HOOK_URL" > http_status.txt
+          HTTP_STATUS=$(cat http_status.txt)
+          echo "Response: $(cat response.json)"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Deployment triggered successfully (HTTP $HTTP_STATUS)"
+          else
+            echo "❌ Deployment failed (HTTP $HTTP_STATUS)"
+            exit 1
+          fi
+
+      - name: ⏳ Wait for deployment to stabilize
+        run: sleep 30
+
+      - name: 🏥 Health check post-deploy
+        env:
+          APP_URL: ${{ secrets.APP_URL }}
+        run: |
+          echo "Running health check on $APP_URL/health ..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$APP_URL/health")
+          if [ "$HTTP_STATUS" -eq 200 ]; then
+            echo "✅ Health check passed (HTTP $HTTP_STATUS)"
+          else
+            echo "❌ Health check failed (HTTP $HTTP_STATUS) – consider rollback"
+            exit 1
+          fi
+
+      - name: 🏷️ Tag successful release
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          TAG="release-$(date +'%Y%m%d-%H%M%S')"
+          git tag "$TAG"
+          git push origin "$TAG"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,15 @@
+groups:
+  - name: observability_app_alerts
+    rules:
+      - alert: HighApplicationErrorRate
+        expr: sum(increase(app_errors_total[1m])) > 5
+        for: 1m
+        labels:
+          severity: critical
+          service: observability-lab-app
+        annotations:
+          summary: "CRITICAL: Application error rate exceeds threshold"
+          description: >-
+            The application is generating more than 5 errors per minute
+            (current value: {{ $value | printf "%.0f" }} errors/min).
+            Investigate logs and upstream dependencies immediately.

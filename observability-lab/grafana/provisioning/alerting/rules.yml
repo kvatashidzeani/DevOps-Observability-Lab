@@ -1,0 +1,51 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: observability-app
+    folder: Observability Lab
+    interval: 1m
+    rules:
+      - uid: high-app-error-rate
+        title: HighApplicationErrorRate
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              editorMode: code
+              expr: sum(increase(app_errors_total[1m]))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 5
+                    type: gt
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: NoData
+        execErrState: Error
+        for: 1m
+        annotations:
+          summary: "CRITICAL: Application error rate exceeds 5 per minute"
+          description: "The app_errors_total counter increased by more than 5 in the last minute."
+        labels:
+          severity: critical
+        isPaused: false

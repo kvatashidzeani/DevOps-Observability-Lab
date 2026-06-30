@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+
+# Node / coverage
+coverage/
+
+# Environment and secrets
+.env
+.env.*
+
+# Logs
+*.log
+logs/
+
+# Midterm deployment artifacts
+deployments/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

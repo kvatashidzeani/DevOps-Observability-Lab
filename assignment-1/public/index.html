@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DevOps Task Manager</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;700;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --accent: #00ff88;
+      --accent2: #00aaff;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --danger: #ff4466;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+
+    .noise {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: 0.4;
+    }
+
+    .container { max-width: 720px; width: 100%; position: relative; z-index: 1; }
+
+    header {
+      margin-bottom: 3rem;
+      border-left: 3px solid var(--accent);
+      padding-left: 1.2rem;
+    }
+
+    .badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(0,255,136,0.08);
+      border: 1px solid rgba(0,255,136,0.2);
+      padding: 0.25rem 0.75rem;
+      border-radius: 2px;
+      margin-bottom: 0.75rem;
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.8rem, 5vw, 3rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+
+    h1 span { color: var(--accent); }
+
+    .subtitle {
+      margin-top: 0.5rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+    }
+
+    .status-bar {
+      display: flex; align-items: center; gap: 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 2rem;
+      font-size: 0.75rem;
+    }
+
+    .dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s;
+    }
+    .dot.green { background: var(--accent); box-shadow: 0 0 8px var(--accent); animation: pulse 2s infinite; }
+    .dot.red { background: var(--danger); }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; } 50% { opacity: 0.4; }
+    }
+
+    #status-text { color: var(--muted); }
+    #status-version { margin-left: auto; color: var(--accent2); }
+
+    .input-row {
+      display: flex; gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.75rem 1rem;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.875rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus { border-color: var(--accent); }
+    input[type="text"]::placeholder { color: var(--muted); }
+
+    button {
+      background: var(--accent);
+      color: #000;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      border: none;
+      border-radius: 4px;
+      padding: 0.75rem 1.5rem;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    button:hover { opacity: 0.85; }
+    button:active { transform: scale(0.97); }
+
+    .task-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+    .task-item {
+      display: flex; align-items: center; gap: 1rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.875rem 1rem;
+      animation: slideIn 0.2s ease;
+      transition: border-color 0.2s;
+    }
+    .task-item:hover { border-color: rgba(0,255,136,0.3); }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .task-check {
+      width: 16px; height: 16px;
+      border: 1px solid var(--muted);
+      border-radius: 2px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s;
+    }
+    .task-check.checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+    .task-check.checked::after { content: '✓'; font-size: 10px; color: #000; font-weight: bold; }
+
+    .task-title { flex: 1; font-size: 0.875rem; }
+    .task-title.done { text-decoration: line-through; color: var(--muted); }
+
+    .task-id { font-size: 0.65rem; color: var(--border); letter-spacing: 0.05em; }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem 1rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+      border: 1px dashed var(--border);
+      border-radius: 4px;
+    }
+    .empty-state .icon { font-size: 2rem; margin-bottom: 0.75rem; opacity: 0.5; }
+
+    footer {
+      margin-top: 4rem;
+      text-align: center;
+      color: var(--border);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+    }
+  </style>
+</head>
+<body>
+<div class="noise"></div>
+<div class="container">
+
+  <header>
+    <div class="badge">DevOps Assignment — CI/CD</div>
+    <h1>Task<span>Manager</span></h1>
+    <p class="subtitle">// node.js · express · jest · github actions · render</p>
+  </header>
+
+  <div class="status-bar">
+    <div class="dot" id="status-dot"></div>
+    <span id="status-text">checking health...</span>
+    <span id="status-version"></span>
+  </div>
+
+  <div class="input-row">
+    <input type="text" id="task-input" placeholder="Enter a new task..." maxlength="120" />
+    <button onclick="addTask()">+ Add</button>
+  </div>
+
+  <div class="task-list" id="task-list">
+    <div class="empty-state">
+      <div class="icon">📋</div>
+      No tasks yet. Add one above.
+    </div>
+  </div>
+
+  <footer>DEPLOYED VIA CI/CD PIPELINE · GITHUB ACTIONS → RENDER</footer>
+</div>
+
+<script>
+  const tasks = [];
+
+  async function checkHealth() {
+    try {
+      const res = await fetch('/health');
+      const data = await res.json();
+      document.getElementById('status-dot').className = 'dot green';
+      document.getElementById('status-text').textContent = 'API status: ' + data.status;
+      document.getElementById('status-version').textContent = 'v' + data.version;
+    } catch {
+      document.getElementById('status-dot').className = 'dot red';
+      document.getElementById('status-text').textContent = 'API unreachable';
+    }
+  }
+
+  async function addTask() {
+    const input = document.getElementById('task-input');
+    const title = input.value.trim();
+    if (!title) return;
+
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        tasks.push(data.task);
+        input.value = '';
+        renderTasks();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  document.getElementById('task-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addTask();
+  });
+
+  function toggleTask(id) {
+    const task = tasks.find(t => t.id === id);
+    if (task) { task.done = !task.done; renderTasks(); }
+  }
+
+  function renderTasks() {
+    const list = document.getElementById('task-list');
+    if (!tasks.length) {
+      list.innerHTML = `<div class="empty-state"><div class="icon">📋</div>No tasks yet. Add one above.</div>`;
+      return;
+    }
+    list.innerHTML = tasks.map(t => `
+      <div class="task-item">
+        <div class="task-check ${t.done ? 'checked' : ''}" onclick="toggleTask(${t.id})"></div>
+        <span class="task-title ${t.done ? 'done' : ''}">${t.title}</span>
+        <span class="task-id">#${String(t.id).slice(-4)}</span>
+      </div>
+    `).join('');
+  }
+
+  checkHealth();
+</script>
+</body>
+</html>
