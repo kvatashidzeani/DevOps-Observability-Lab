@@ -1,8 +1,6 @@
-# Midterm - DevOps Project
+
 
 This repository contains a small web application and a complete DevOps workflow implementation that satisfies the midterm requirements.
-
-> Important: avoid committing after your deadline. Finalize and push everything on time.
 
 ## Repository Link
 
